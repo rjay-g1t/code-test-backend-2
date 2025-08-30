@@ -1,4 +1,4 @@
-# Backend Dockerfile
+# Backend Dockerfile - Optimized for Railway
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -17,11 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Make start script executable
+RUN chmod +x start.sh
 
-# Expose port
-EXPOSE 8001
+# Create uploads directory with proper permissions
+RUN mkdir -p uploads/thumbnails && chmod -R 755 uploads
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Expose port (Railway will assign the actual port)
+EXPOSE $PORT
+
+# Run the application using start script
+CMD ["./start.sh"]

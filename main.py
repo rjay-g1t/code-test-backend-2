@@ -28,15 +28,25 @@ from utils.auth import verify_token
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Log startup information
+railway_environment = os.getenv("RAILWAY_ENVIRONMENT", "local")
+port = os.getenv("PORT", "8001")
+logger.info(f"Starting AI Image Gallery API on port {port} in {railway_environment} environment")
 
 app = FastAPI(title="AI Image Gallery API", version="1.0.0")
 
 # CORS middleware
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+logger.info(f"CORS origins configured: {cors_origins}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,12 +69,43 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.get("/")
 async def root():
-    return {"message": "AI Image Gallery API"}
+    return {
+        "message": "AI Image Gallery API",
+        "version": "1.0.0",
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "local"),
+        "docs": "/docs"
+    }
+
+# Global exception handler for better error logging
+@app.exception_handler(500)
+async def internal_server_error(request, exc):
+    logger.error(f"Internal server error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "timestamp": datetime.now().isoformat()}
+    )
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    try:
+        # Test database connection
+        service_client = supabase_client.get_service_client()
+        # Simple query to test connection
+        result = service_client.table('images').select('id').limit(1).execute()
+        db_status = "connected"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        db_status = "disconnected"
+    
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "local"),
+        "port": os.getenv("PORT", "8001"),
+        "database": db_status,
+        "upload_dir": UPLOAD_DIR
+    }
 
 @app.post("/api/upload", response_model=List[ImageResponse])
 async def upload_images(
