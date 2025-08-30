@@ -34,6 +34,7 @@ This application is optimized for Railway deployment:
 3. **Deploy**: Railway will automatically build and deploy using the Dockerfile
 
 ### Railway-specific features:
+
 - Dynamic port configuration (uses Railway's `PORT` environment variable)
 - Health check endpoint at `/health`
 - Optimized Docker build with `.dockerignore`
@@ -42,6 +43,7 @@ This application is optimized for Railway deployment:
 ## Local Development
 
 1. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -49,6 +51,7 @@ pip install -r requirements.txt
 2. Copy `.env.example` to `.env` and fill in your values
 
 3. Run the server:
+
 ```bash
 uvicorn main:app --reload --port 8001
 ```
